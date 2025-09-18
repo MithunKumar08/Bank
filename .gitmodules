@@ -1,0 +1,3 @@
+[submodule "eurekaSetUp"]
+	path = eurekaSetUp
+	url = https://github.com/MithunKumar08/EurekaSetup.git
