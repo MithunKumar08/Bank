@@ -13,6 +13,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Optional;
 
@@ -34,18 +35,28 @@ public class BankService {
         }
 
         try {
-            BankEntity bank = new BankEntity();
-            bank.setAccountNumber("12345678");
-            bank.setAccountType("Savings Account");
-            bank.setBankLocation("Mysore");
-            bank.setCustomerId(customer.getCustomerId());
+            String baseUrl = "http://localhost:8080/customer/getCustomer/{customerId}";
+            String getCustomerDataUrl = UriComponentsBuilder.fromUriString(baseUrl)
+                    .buildAndExpand(customer.getCustomerId())
+                    .toUriString();
 
-            bankRepository.save(bank);
-            System.out.println("Account created: "+ bank);
-            return new ResponseEntity<>("Account1 Created Successfully", HttpStatus.CREATED);
+            ResponseEntity<CustomerDto> customerData = restTemplate.exchange(getCustomerDataUrl,HttpMethod.GET,null,CustomerDto.class);
+            if(customerData.getBody() != null && !(this.checkCustomerhasAccount(customer.getCustomerId()))) {
+                BankEntity bank = new BankEntity();
+                bank.setAccountNumber("12345678");
+                bank.setAccountType("Savings Account");
+                bank.setBankLocation("Mysore");
+                bank.setCustomerId(customer.getCustomerId());
+
+                bankRepository.save(bank);
+                System.out.println("Account created: " + bank);
+                return new ResponseEntity<>("Account1 Created Successfully", HttpStatus.CREATED);
+            }else {
+                return new ResponseEntity<>("Customer already have account!",HttpStatus.OK);
+            }
         } catch (Exception e) {
             e.printStackTrace(); // or use a logger
-            return new ResponseEntity<>("Customer data is missing or invalid", HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>("Customer is not registered Please Register!", HttpStatus.OK);
         }
     }
 
@@ -87,5 +98,11 @@ public class BankService {
         }else {
             return null;
         }
+    }
+
+    public boolean checkCustomerhasAccount(Long customerId){
+        Optional<BankEntity> data = bankRepository.findByCustomerId(customerId);
+        if(data.isPresent()) return true;
+        else return false;
     }
 }
